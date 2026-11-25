@@ -932,7 +932,14 @@
     // Jika dibiarkan null, akan otomatis memakai cloud bawaan
     // atau penyimpanan lokal perangkat sebagai cadangan.
     // =========================================================
-    const PUBLIC_FIREBASE_CONFIG = null;
+    const PUBLIC_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      authDomain: "nama-project-anda.firebaseapp.com",
+      projectId: "nama-project-anda",
+      storageBucket: "nama-project-anda.firebasestorage.app",
+      messagingSenderId: "123456789012",
+      appId: "1:123456789012:web:abcdef1234567890"
+    };
 
     function loadLocalWishes() {
       try {
