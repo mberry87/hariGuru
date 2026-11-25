@@ -582,7 +582,7 @@
           <div class="mt-6 pt-5 border-t border-goldSoft/25">
             <div class="flex items-center justify-between mb-3.5">
               <div class="flex items-center gap-2">
-                <span id="cloud-status-dot" title="Status penyimpanan" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span id="cloud-status-dot" title="Menghubungkan ke server..." class="w-2 h-2 rounded-full bg-amber-400"></span>
                 <h4 class="font-serif text-sm font-semibold text-emeraldDeep">Untaian Doa Terkirim</h4>
               </div>
               <span id="wish-count" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-ivoryDark text-emeraldDeep border border-goldSoft/30">
@@ -925,23 +925,17 @@
     let firestoreFns = null;
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-    // =========================================================
-    // OPSIONAL UNTUK HOSTING MANDIRI (Netlify / GitHub Pages):
-    // Jika ingin doa tersimpan online real-time di hosting sendiri,
-    // tempelkan objek konfigurasi Firebase Anda di bawah ini.
-    // Jika dibiarkan null, akan otomatis memakai cloud bawaan
-    // atau penyimpanan lokal perangkat sebagai cadangan.
-    // =========================================================
-    const firebaseConfig = {
-    apiKey: "AIzaSyCHNkpl3EdQBUNf2BCthkboyMUB57XlAYU",
-    authDomain: "hariguru-9a091.firebaseapp.com",
-    projectId: "hariguru-9a091",
-    storageBucket: "hariguru-9a091.firebasestorage.app",
-    messagingSenderId: "939305150736",
-    appId: "1:939305150736:web:aaf93a47acb1a9bd521d95",
-    measurementId: "G-31158FXP6W"
-  };
-    
+    // Konfigurasi Firebase Project: hariguru-9a091
+    const PUBLIC_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCHNkpl3EdQBUNf2BCthkboyMUB57XlAYU",
+      authDomain: "hariguru-9a091.firebaseapp.com",
+      projectId: "hariguru-9a091",
+      storageBucket: "hariguru-9a091.firebasestorage.app",
+      messagingSenderId: "939305150736",
+      appId: "1:939305150736:web:aaf93a47acb1a9bd521d95",
+      measurementId: "G-31158FXP6W"
+    };
+
     function loadLocalWishes() {
       try {
         const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -1036,13 +1030,14 @@
         auth = authMod.getAuth(app);
         db = fsMod.getFirestore(app);
 
+        let userCred = null;
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await authMod.signInWithCustomToken(auth, __initial_auth_token);
+          userCred = await authMod.signInWithCustomToken(auth, __initial_auth_token);
         } else {
-          await authMod.signInAnonymously(auth);
+          userCred = await authMod.signInAnonymously(auth);
         }
 
-        currentUser = auth.currentUser;
+        currentUser = (userCred && userCred.user) || auth.currentUser;
         if (!currentUser) {
           throw new Error('Autentikasi pengguna gagal.');
         }
@@ -1050,7 +1045,7 @@
         cloudEnabled = true;
         cloudStatusDot.classList.remove('bg-amber-400');
         cloudStatusDot.classList.add('bg-emerald-500');
-        cloudStatusDot.title = 'Terhubung ke Cloud Real-Time';
+        cloudStatusDot.title = 'Terhubung ke Firebase Cloud Real-Time';
 
         const wishesColRef = fsMod.collection(db, 'artifacts', appId, 'public', 'data', 'wishes');
 
@@ -1078,7 +1073,8 @@
             console.error('Gagal memuat doa real-time:', error);
             cloudStatusDot.classList.remove('bg-emerald-500');
             cloudStatusDot.classList.add('bg-amber-400');
-            showToast('Koneksi cloud terganggu. Mencoba memuat ulang...');
+            cloudStatusDot.title = `Error Firestore: ${error.code || error.message}`;
+            showToast('Koneksi cloud terganggu. Periksa Rules atau Authorized Domains.');
           }
         );
       } catch (err) {
@@ -1086,7 +1082,7 @@
         cloudEnabled = false;
         cloudStatusDot.classList.remove('bg-emerald-500');
         cloudStatusDot.classList.add('bg-amber-400');
-        cloudStatusDot.title = 'Mode penyimpanan lokal';
+        cloudStatusDot.title = `Mode lokal aktif (${err.code || err.message})`;
         wishes = loadLocalWishes();
         renderWishes();
       }
@@ -1218,25 +1214,29 @@
     });
 
     /* =========================================================
-     * 6. SHARE GREETING TO CLIPBOARD (execCommand SAFE)
+     * 6. SHARE GREETING TO CLIPBOARD
      * ========================================================= */
     const shareBtn = document.getElementById('share-btn');
-    shareBtn.addEventListener('click', () => {
+    shareBtn.addEventListener('click', async () => {
       const shareText =
         `✨ Selamat Hari Guru Nasional (25 November) ✨\n\n` +
         `“Terima kasih telah menjadi pelita di tengah gelap, dan embun penyejuk di saat dahaga ilmu.”\n\n` +
         `Semoga Ibu & Bapak Guru senantiasa diberikan kesehatan, kebahagiaan, serta keberkahan atas segala ilmu dan ketulusan yang telah diberikan. Jasamu abadi sepanjang masa. 🌿💛`;
 
       try {
-        const tempTextarea = document.createElement('textarea');
-        tempTextarea.value = shareText;
-        tempTextarea.style.position = 'fixed';
-        tempTextarea.style.opacity = '0';
-        document.body.appendChild(tempTextarea);
-        tempTextarea.focus();
-        tempTextarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempTextarea);
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareText);
+        } else {
+          const tempTextarea = document.createElement('textarea');
+          tempTextarea.value = shareText;
+          tempTextarea.style.position = 'fixed';
+          tempTextarea.style.opacity = '0';
+          document.body.appendChild(tempTextarea);
+          tempTextarea.focus();
+          tempTextarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(tempTextarea);
+        }
         showToast('Teks ucapan indah berhasil disalin! Siap dibagikan.');
       } catch (err) {
         showToast('Maaf, gagal menyalin ucapan. Silakan coba lagi.');
