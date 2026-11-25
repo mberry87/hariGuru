@@ -932,15 +932,16 @@
     // Jika dibiarkan null, akan otomatis memakai cloud bawaan
     // atau penyimpanan lokal perangkat sebagai cadangan.
     // =========================================================
-    const PUBLIC_FIREBASE_CONFIG = {
-      apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      authDomain: "nama-project-anda.firebaseapp.com",
-      projectId: "nama-project-anda",
-      storageBucket: "nama-project-anda.firebasestorage.app",
-      messagingSenderId: "123456789012",
-      appId: "1:123456789012:web:abcdef1234567890"
-    };
-
+    const firebaseConfig = {
+    apiKey: "AIzaSyCHNkpl3EdQBUNf2BCthkboyMUB57XlAYU",
+    authDomain: "hariguru-9a091.firebaseapp.com",
+    projectId: "hariguru-9a091",
+    storageBucket: "hariguru-9a091.firebasestorage.app",
+    messagingSenderId: "939305150736",
+    appId: "1:939305150736:web:aaf93a47acb1a9bd521d95",
+    measurementId: "G-31158FXP6W"
+  };
+    
     function loadLocalWishes() {
       try {
         const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
